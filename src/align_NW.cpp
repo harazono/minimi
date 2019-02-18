@@ -16,7 +16,6 @@
 #include "score_2mer_mod_3digit.h"
 #include "score_3mer_mod_3digit.h"
 #include "score_4mer_mod_3digit.h"
-#include "score_5mer_mod_3digit.h"
 
 #define _pos(i, j, ilen)	( (j) * ((ilen) + 1) + (i) )
 #define MAX2(p, q)			( ((p) < (q)) ? (q) : (p) )
@@ -503,12 +502,6 @@ int main(int argc, char *argv[]){
             case 4:
                 {
                     Matrix result = needlman_wunsch(reference_sequence, query_sequence, 4, score_4mer_mod_3digit);
-                    printf("%d\n", result.score);
-                }
-                break;
-            case 5:
-                {
-                    Matrix result = needlman_wunsch(reference_sequence, query_sequence, 5, score_5mer_mod_3digit);
                     printf("%d\n", result.score);
                 }
                 break;

@@ -53,13 +53,22 @@ int int2base(uint32_t intBase) {
 }
 
 struct Context {
+    size_t con;
+    Context(){
+        con = 0;
+    }
+    void slide(char ref_char, char query_char, int kmer_size){
+        con = shift_digit(con, base2int(ref_char),   2 * (kmer_size - 1));
+        con = shift_digit(con, base2int(query_char), 2 * (kmer_size - 1));
+    }
+};
+/*
+struct Context {
 	size_t ref_seq;  ///< Reference context sequence (integer of 5-ord numbers)
     size_t query_seq;///< Query context sequence  (integer of 5-ord numbers)
     Context() {
         ref_seq = query_seq = 0;
     }
-
-    /**
      * Slide context
      *
      * for example:
@@ -68,13 +77,13 @@ struct Context {
      *   calling slide('C', 'A') will lead to the following result:
      *        context = ref: CGTC,
      *                  qry: GGCA
-     */
+     *
     void slide(char ref_char, char query_char, int kmer_size){
         ref_seq   = shift_digit(ref_seq,   base2int(ref_char), kmer_size);
         query_seq = shift_digit(query_seq, base2int(query_char), kmer_size);
     }
 };
-
+*/
 enum TraceBackDirection {
     TB_MATCH = 0, ///< Traceback to the upperleft direction (Match/Mismatch)
     TB_LEFT  = 1, ///< Trackback to the left  (insertion to the reference)
@@ -154,7 +163,7 @@ string idx2str(int idx, size_t kmer_size) {
     }
     return n;
 }
-
+/*
 void showMatrix(const vector<vector<Matrix> >& mtx)
 {
     fprintf(stderr, "======\n");
@@ -192,7 +201,7 @@ void showMatrix(const vector<vector<Matrix> >& mtx)
     }
     fprintf(stderr, "======\n");
 }
-
+*/
 int ipow(int a, int b)
 {
     int retval = 1;
@@ -218,19 +227,20 @@ Matrix needlman_wunsch(
     int all_gap_index;
     {
         char gaps[kmer_size + 1];
-        for(size_t i = 0; i < kmer_size; i++){
+        for(size_t i = 0; i < 2 * (kmer_size - 1); i++){
             gaps[i] = '-';
         }
         gaps[kmer_size] = '\0';
         all_gap_index = str2idx(gaps);
     }
 
-
-    const size_t mtx_col_len = ipow(5, kmer_size);
-
-    #define table_index(rmi, qmi) ((qmi) * mtx_col_len + (rmi))
-    #define tb(i, j) table_index(i, j)
+//modify here
+    const size_t context_idx_size = ipow(5, 2 * (kmer_size - 1));
+    #define table_index(i, j) ( (j) * context_idx_size + (i) )
+    #define ti(i, j) table_index(i, j)
     const int32_t *st = kmer_score_table;
+
+
 
     vector<vector<Matrix> > mtx(rl + 1, vector<Matrix>(ql + 1));
     // initialize
@@ -238,41 +248,13 @@ Matrix needlman_wunsch(
 
     for(size_t rsi = 0; rsi <=rl; rsi++){
         for(size_t qsi = 0; qsi <= ql; qsi++){
-            mtx[rsi][qsi].context.ref_seq   = all_gap_index;
-            mtx[rsi][qsi].context.query_seq = all_gap_index;
-        }
-    }
-/*
-    if(kmer_size == 1){
-        for(size_t rsi = 1; rsi <= rl; rsi++){
-            mtx[rsi][0].context.slide(rs[rsi - 1], '-', kmer_size);
-            mtx[rsi][0].score  = mtx[rsi - 1][0].score + st[tb(mtx[rsi][0].context.ref_seq, mtx[rsi][0].context.query_seq)];
-            mtx[rsi][0].tb_dir = TB_LEFT;
-        }
-        for(size_t qsi = 1; qsi <= ql; qsi++){
-            mtx[0][qsi].context.slide('-', qs[qsi - 1], kmer_size);
-            mtx[0][qsi].score  = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
-            mtx[0][qsi].tb_dir = TB_UP;
+            mtx[rsi][qsi].context.con   = all_gap_index;
         }
     }
 
-    if(kmer_size >= 2){
-        for(size_t rsi = 1; rsi <= rl; rsi++){
-            mtx[rsi][0].context.slide(rs[rsi - 1], '-', kmer_size);
-            mtx[rsi][0].score  = mtx[rsi - 1][0].score + st[tb(mtx[rsi][0].context.ref_seq, mtx[rsi][0].context.query_seq)];
-            mtx[rsi][0].tb_dir = TB_LEFT;
-        }
-        for(size_t qsi = 1; qsi <= ql; qsi++){
-            mtx[0][qsi].context.slide('-', qs[qsi - 1], kmer_size);
-            mtx[0][qsi].score  = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
-            mtx[0][qsi].tb_dir = TB_UP;
-        }
-    }
-    */
     Context home_context;
     Context hc   = home_context;
-    hc.ref_seq   = all_gap_index;
-    hc.query_seq = all_gap_index;
+    hc.con       = all_gap_index;
     hc.slide(rs[0], qs[0], kmer_size);
     mtx[0][0].context = hc;
     mtx[0][0].score   = 0;
@@ -282,7 +264,7 @@ Matrix needlman_wunsch(
         Matrix pre = mtx[rsi - 1][0];
         mtx[rsi][0].context = pre.context;
         mtx[rsi][0].context.slide(rs[rsi - 1], '-', kmer_size);
-        mtx[rsi][0].score = mtx[rsi - 1][0].score + st[tb(mtx[rsi][0].context.ref_seq, mtx[rsi][0].context.query_seq)];
+        //mtx[rsi][0].score = 
         mtx[rsi][0].tb_dir = TB_UP;
     }
 
@@ -290,31 +272,26 @@ Matrix needlman_wunsch(
         Matrix pre = mtx[0][qsi - 1];
         mtx[0][qsi].context = pre.context;
         mtx[0][qsi].context.slide('-', qs[qsi - 1], kmer_size);
-        mtx[0][qsi].score = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
+        //mtx[0][qsi].score = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
         mtx[0][qsi].tb_dir = TB_LEFT;
     }
 
-
-
-    /*
-     * mtx_col_len : size of score table
-     * when k = 1, mtx_col_len should be 5
-     * when k = 2, mtx_col_len should be 25
-     * when k = 3, mtx_col_len should be 125
-     */
     for(size_t rmi = 1; rmi <= rl; rmi++){
 		for(size_t qmi = 1; qmi <= ql; qmi++){
             //fprintf(stderr, "proccecing (rmi, qmi) = (%d, %d)\n", rmi, qmi);
             //showMatrix(mtx);
             const size_t rsi = rmi - 1; // reference index on reference_sequence, i.e.   rs[rp]
             const size_t qsi = qmi - 1; // query index on query_sequence,         i.e.   qs[qp]
-            Matrix upper_left_matrix = mtx[rmi - 1][qmi - 1]; upper_left_matrix.context.slide(rs[rsi], qs[qsi], kmer_size);
-            Matrix left_matrix       = mtx[rmi - 1][qmi    ]; left_matrix.context.slide(      rs[rsi],     '-', kmer_size);
-            Matrix upper_matrix      = mtx[rmi    ][qmi - 1]; upper_matrix.context.slide(         '-', qs[qsi], kmer_size);
 
-            const int32_t     m_score = upper_left_matrix.score + st[tb(upper_left_matrix.context.ref_seq, upper_left_matrix.context.query_seq)];
-            const int32_t  left_score =       left_matrix.score + st[tb(      left_matrix.context.ref_seq,       left_matrix.context.query_seq)];
-            const int32_t upper_score =      upper_matrix.score + st[tb(     upper_matrix.context.ref_seq,      upper_matrix.context.query_seq)];
+            Matrix  upper_left_matrix = mtx[rmi - 1][qmi - 1];
+            Matrix        left_matrix = mtx[rmi - 1][qmi    ];
+            Matrix       upper_matrix = mtx[rmi    ][qmi - 1];
+            size_t         match_case = base2int(rs[rsi]) * 5 + base2int(qs[qsi]);
+            size_t          left_case = base2int(rs[rsi]) * 5 + base2int(    '-');
+            size_t         upper_case = base2int(    '-') * 5 + base2int(qs[qsi]);
+            const int32_t     m_score = upper_left_matrix.score + st[ti(upper_left_matrix.context.con, match_case)];
+            const int32_t  left_score =       left_matrix.score + st[ti(      left_matrix.context.con,  left_case)];
+            const int32_t upper_score = upper_left_matrix.score + st[ti(     upper_matrix.context.con, upper_case)];
 
             TraceBackDirection current_best_traceback_direction = TB_START;
             TraceBackDirection& cbt = current_best_traceback_direction;
@@ -336,10 +313,13 @@ Matrix needlman_wunsch(
             cc.score = score_max;
             cc.tb_dir = cbt;
             if(cbt == TB_MATCH){
+                upper_left_matrix.context.slide(rs[rsi], qs[qsi], kmer_size);
                 cc.context = upper_left_matrix.context;
             } else if(cbt == TB_LEFT){
+                left_matrix.context.slide(rs[rsi],     '-', kmer_size);
                 cc.context = left_matrix.context;
             } else if(cbt == TB_UP){
+                upper_matrix.context.slide(    '-', qs[qsi], kmer_size);
                 cc.context = upper_matrix.context;
             }else if(cbt == TB_START){
                 /* new_reference_subseq contains previous k-mer string of reference sequence.
@@ -364,8 +344,7 @@ Matrix needlman_wunsch(
                  */
 
                 Context dummy_context;//when smith-waterman algorithm end with low score, use this context. need to be filled with something
-                dummy_context.ref_seq   = all_gap_index;
-                dummy_context.query_seq = all_gap_index;
+                dummy_context.con   = all_gap_index;
                 for(size_t i = 0; i < kmer_size; i++){
                     int dif = kmer_size - i;
                     char ref_buf, qry_buf;

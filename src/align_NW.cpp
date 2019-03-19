@@ -7,11 +7,8 @@
 #include <string>
 #include <vector>
 #include <limits.h>
+#include "kmer_library.h"
 #include "score_1mer.h"
-#include "score_2mer.h"
-#include "score_3mer.h"
-#include "score_1mer_mod.h"
-#include "score_2mer_mod.h"
 #include "score_1mer_mod_3digit.h"
 #include "score_2mer_mod_3digit.h"
 #include "score_3mer_mod_3digit.h"
@@ -27,7 +24,9 @@
 
 using namespace std;
 
+
 uint32_t shift_digit(uint32_t pre, uint32_t add, size_t kmer_size){
+    //fprintf(stderr, "%d, %d, %d\n", pre, add, kmer_size);
     ASSERT(0 <= add && add < 5, "add must be 0-4");
     size_t num_kmers = 1;
     for(size_t i = 0; i < kmer_size; i++) {
@@ -62,28 +61,7 @@ struct Context {
         con = shift_digit(con, base2int(query_char), 2 * (kmer_size - 1));
     }
 };
-/*
-struct Context {
-	size_t ref_seq;  ///< Reference context sequence (integer of 5-ord numbers)
-    size_t query_seq;///< Query context sequence  (integer of 5-ord numbers)
-    Context() {
-        ref_seq = query_seq = 0;
-    }
-     * Slide context
-     *
-     * for example:
-     *   when context = ref: ACGT,
-     *                  qry: CGGC,
-     *   calling slide('C', 'A') will lead to the following result:
-     *        context = ref: CGTC,
-     *                  qry: GGCA
-     *
-    void slide(char ref_char, char query_char, int kmer_size){
-        ref_seq   = shift_digit(ref_seq,   base2int(ref_char), kmer_size);
-        query_seq = shift_digit(query_seq, base2int(query_char), kmer_size);
-    }
-};
-*/
+
 enum TraceBackDirection {
     TB_MATCH = 0, ///< Traceback to the upperleft direction (Match/Mismatch)
     TB_LEFT  = 1, ///< Trackback to the left  (insertion to the reference)
@@ -93,7 +71,7 @@ enum TraceBackDirection {
 
 struct Matrix {
 	int32_t score;
-	TraceBackDirection   tb_dir;   ///< Traceback direction.(32bit)
+	TraceBackDirection tb_dir;   ///< Traceback direction.(32bit)
 	int64_t ipos;
 	int64_t jpos;
 	Context context;
@@ -144,10 +122,10 @@ struct Matrix {
 
 int str2idx(char *str){
 	size_t i = 0;
-	int sum = 0;
+	int sum  = 0;
 	size_t len = strlen(str);
 	while(str[i] != '\0'){
-		sum += base2int(str[i]) * (int)pow(5, len - i - 1);
+		sum += base2int(str[i]) * ipow(5, len - i - 1);
 		i++;
 	}
 	return sum;
@@ -202,14 +180,6 @@ void showMatrix(const vector<vector<Matrix> >& mtx)
     fprintf(stderr, "======\n");
 }
 */
-int ipow(int a, int b)
-{
-    int retval = 1;
-    for(size_t i = 0; i < b; i++){
-        retval *= a;
-    }
-    return retval;
-}
 
 Matrix needlman_wunsch(
         const char* const reference_sequence,
@@ -224,23 +194,23 @@ Matrix needlman_wunsch(
     const uint32_t rl  = reference_length;
     const uint32_t ql  = query_length;
     //fprintf(stderr, "finish allocation working memory\n");
-    int all_gap_index;
-    {
+    int all_gap_index = ipow(5, 2 * (kmer_size - 1)) - 1;
+    if(kmer_size == 1){
+        all_gap_index = base2int('-');
+    }
+    /*{
         char gaps[kmer_size + 1];
         for(size_t i = 0; i < 2 * (kmer_size - 1); i++){
             gaps[i] = '-';
         }
         gaps[kmer_size] = '\0';
         all_gap_index = str2idx(gaps);
-    }
+    }*/
 
-//modify here
     const size_t context_idx_size = ipow(5, 2 * (kmer_size - 1));
-    #define table_index(i, j) ( (j) * context_idx_size + (i) )
+    #define table_index(i, j) ( (i) * 25 + (j) )
     #define ti(i, j) table_index(i, j)
     const int32_t *st = kmer_score_table;
-
-
 
     vector<vector<Matrix> > mtx(rl + 1, vector<Matrix>(ql + 1));
     // initialize
@@ -248,7 +218,7 @@ Matrix needlman_wunsch(
 
     for(size_t rsi = 0; rsi <=rl; rsi++){
         for(size_t qsi = 0; qsi <= ql; qsi++){
-            mtx[rsi][qsi].context.con   = all_gap_index;
+            mtx[rsi][qsi].context.con = all_gap_index;
         }
     }
 
@@ -260,20 +230,24 @@ Matrix needlman_wunsch(
     mtx[0][0].score   = 0;
     mtx[0][0].tb_dir  = TB_START;
 
-    for(size_t rsi = 1; rsi <= rl; rsi++){
-        Matrix pre = mtx[rsi - 1][0];
-        mtx[rsi][0].context = pre.context;
-        mtx[rsi][0].context.slide(rs[rsi - 1], '-', kmer_size);
-        //mtx[rsi][0].score = 
-        mtx[rsi][0].tb_dir = TB_UP;
+    for(size_t rsi = 1; rsi < rl; rsi++){
+        Matrix pre      = mtx[rsi - 1][0];
+        Matrix nxt      = mtx[rsi][0];
+        nxt.context     = pre.context;
+        nxt.context.slide(rs[rsi], '-', kmer_size);
+        size_t left_con = base2int(rs[rsi]) * 5 + base2int('-');
+        nxt.score       = pre.score + st[ti(pre.context.con, left_con)];
+        nxt.tb_dir      = TB_UP;
     }
 
-    for(size_t qsi = 1; qsi <= ql; qsi++){
-        Matrix pre = mtx[0][qsi - 1];
-        mtx[0][qsi].context = pre.context;
-        mtx[0][qsi].context.slide('-', qs[qsi - 1], kmer_size);
-        //mtx[0][qsi].score = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
-        mtx[0][qsi].tb_dir = TB_LEFT;
+    for(size_t qsi = 1; qsi < ql; qsi++){
+        Matrix pre      = mtx[0][qsi - 1];
+        Matrix nxt      = mtx[0][qsi];
+        nxt.context     = pre.context;
+        nxt.context.slide('-', qs[qsi - 1], kmer_size);
+        size_t upper_con= base2int('-') * 5 + base2int(qs[qsi]);
+        nxt.score       = pre.score + st[ti(pre.context.con, upper_con)];
+        nxt.tb_dir      = TB_LEFT;
     }
 
     for(size_t rmi = 1; rmi <= rl; rmi++){
@@ -282,16 +256,15 @@ Matrix needlman_wunsch(
             //showMatrix(mtx);
             const size_t rsi = rmi - 1; // reference index on reference_sequence, i.e.   rs[rp]
             const size_t qsi = qmi - 1; // query index on query_sequence,         i.e.   qs[qp]
-
             Matrix  upper_left_matrix = mtx[rmi - 1][qmi - 1];
             Matrix        left_matrix = mtx[rmi - 1][qmi    ];
             Matrix       upper_matrix = mtx[rmi    ][qmi - 1];
-            size_t         match_case = base2int(rs[rsi]) * 5 + base2int(qs[qsi]);
-            size_t          left_case = base2int(rs[rsi]) * 5 + base2int(    '-');
-            size_t         upper_case = base2int(    '-') * 5 + base2int(qs[qsi]);
+            size_t         match_case = base2int(rs[rsi]) * 5 + base2int(qs[qsi]);//
+            size_t          left_case = base2int(rs[rsi]) * 5 + base2int(    '-');//next pair's index
+            size_t         upper_case = base2int(    '-') * 5 + base2int(qs[qsi]);//
             const int32_t     m_score = upper_left_matrix.score + st[ti(upper_left_matrix.context.con, match_case)];
             const int32_t  left_score =       left_matrix.score + st[ti(      left_matrix.context.con,  left_case)];
-            const int32_t upper_score = upper_left_matrix.score + st[ti(     upper_matrix.context.con, upper_case)];
+            const int32_t upper_score =      upper_matrix.score + st[ti(     upper_matrix.context.con, upper_case)];
 
             TraceBackDirection current_best_traceback_direction = TB_START;
             TraceBackDirection& cbt = current_best_traceback_direction;

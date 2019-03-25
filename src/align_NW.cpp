@@ -21,7 +21,6 @@
 
 #define ASSERT(cond, message) do { if(!(cond)){ fprintf(stderr, "ASSERTION ERROR: %s\nCONDITION: %s\n", message, #cond); exit(2); } } while(0)
 
-
 using namespace std;
 
 

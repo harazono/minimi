@@ -1,4 +1,3 @@
-
 // vim:ff=unix ft=cpp ts=4 sw=4 sts=4 si et :
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,12 +6,13 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include <limits.h>
+#include "kmer_library.h"
 #include "score_1mer.h"
-#include "score_2mer.h"
-#include "score_3mer.h"
-#include "score_1mer_mod.h"
-#include "score_2mer_mod.h"
+#include "score_1mer_mod_3digit.h"
 #include "score_2mer_mod_3digit.h"
+#include "score_3mer_mod_3digit.h"
+#include "score_4mer_mod_3digit.h"
 
 #define _pos(i, j, ilen)	( (j) * ((ilen) + 1) + (i) )
 #define MAX2(p, q)			( ((p) < (q)) ? (q) : (p) )
@@ -21,10 +21,11 @@
 
 #define ASSERT(cond, message) do { if(!(cond)){ fprintf(stderr, "ASSERTION ERROR: %s\nCONDITION: %s\n", message, #cond); exit(2); } } while(0)
 
-
 using namespace std;
 
+
 uint32_t shift_digit(uint32_t pre, uint32_t add, size_t kmer_size){
+    //fprintf(stderr, "%d, %d, %d\n", pre, add, kmer_size);
     ASSERT(0 <= add && add < 5, "add must be 0-4");
     size_t num_kmers = 1;
     for(size_t i = 0; i < kmer_size; i++) {
@@ -50,25 +51,13 @@ int int2base(uint32_t intBase) {
 }
 
 struct Context {
-	size_t ref_seq;  ///< Reference context sequence (integer of 5-ord numbers)
-    size_t query_seq;///< Query context sequence  (integer of 5-ord numbers)
-    Context() {
-        ref_seq = query_seq = 0;
+    size_t con;
+    Context(){
+        con = 0;
     }
-
-    /**
-     * Slide context
-     *
-     * for example:
-     *   when context = ref: ACGT,
-     *                  qry: CGGC,
-     *   calling slide('C', 'A') will lead to the following result:
-     *        context = ref: CGTC,
-     *                  qry: GGCA
-     */
     void slide(char ref_char, char query_char, int kmer_size){
-        ref_seq   = shift_digit(ref_seq,   base2int(ref_char), kmer_size);
-        query_seq = shift_digit(query_seq, base2int(query_char), kmer_size);
+        con = shift_digit(con, base2int(ref_char),   2 * (kmer_size - 1));
+        con = shift_digit(con, base2int(query_char), 2 * (kmer_size - 1));
     }
 };
 
@@ -81,7 +70,7 @@ enum TraceBackDirection {
 
 struct Matrix {
 	int32_t score;
-	TraceBackDirection   tb_dir;   ///< Traceback direction.(32bit)
+	TraceBackDirection tb_dir;   ///< Traceback direction.(32bit)
 	int64_t ipos;
 	int64_t jpos;
 	Context context;
@@ -132,10 +121,10 @@ struct Matrix {
 
 int str2idx(char *str){
 	size_t i = 0;
-	int sum = 0;
+	int sum  = 0;
 	size_t len = strlen(str);
 	while(str[i] != '\0'){
-		sum += base2int(str[i]) * (int)pow(5, len - i - 1);
+		sum += base2int(str[i]) * ipow(5, len - i - 1);
 		i++;
 	}
 	return sum;
@@ -151,7 +140,7 @@ string idx2str(int idx, size_t kmer_size) {
     }
     return n;
 }
-
+/*
 void showMatrix(const vector<vector<Matrix> >& mtx)
 {
     fprintf(stderr, "======\n");
@@ -159,7 +148,7 @@ void showMatrix(const vector<vector<Matrix> >& mtx)
     for(size_t y = 0; y < mtx.size(); y++) {
         const vector<Matrix>& line = mtx[y];
         for(size_t x = 0; x < line.size(); x++) {
-            fprintf(stderr, "%3d ", line[x].score);
+            fprintf(stderr, "%5d ", line[x].score);
         }
         fprintf(stderr, "\n");
     }
@@ -167,7 +156,7 @@ void showMatrix(const vector<vector<Matrix> >& mtx)
     for(size_t y = 0; y < mtx.size(); y++) {
         const vector<Matrix>& line = mtx[y];
         for(size_t x = 0; x < line.size(); x++) {
-            fprintf(stderr, "%3zu ", line[x].context.ref_seq);
+            fprintf(stderr, "%5zu ", line[x].context.ref_seq);
         }
         fprintf(stderr, "\n");
     }
@@ -175,7 +164,7 @@ void showMatrix(const vector<vector<Matrix> >& mtx)
     for(size_t y = 0; y < mtx.size(); y++) {
         const vector<Matrix>& line = mtx[y];
         for(size_t x = 0; x < line.size(); x++) {
-            fprintf(stderr, "%3zu ", line[x].context.query_seq);
+            fprintf(stderr, "%5zu ", line[x].context.query_seq);
         }
         fprintf(stderr, "\n");
     }
@@ -183,15 +172,15 @@ void showMatrix(const vector<vector<Matrix> >& mtx)
     for(size_t y = 0; y < mtx.size(); y++) {
         const vector<Matrix>& line = mtx[y];
         for(size_t x = 0; x < line.size(); x++) {
-            fprintf(stderr, "%3d ", line[x].tb_dir);
+            fprintf(stderr, "%5d ", line[x].tb_dir);
         }
         fprintf(stderr, "\n");
     }
     fprintf(stderr, "======\n");
 }
+*/
 
-
-Matrix smith_waterman(
+Matrix needlman_wunsch(
         const char* const reference_sequence,
         const char* const query_sequence,
         const size_t kmer_size,
@@ -204,55 +193,61 @@ Matrix smith_waterman(
     const uint32_t rl  = reference_length;
     const uint32_t ql  = query_length;
     //fprintf(stderr, "finish allocation working memory\n");
-    int all_gap_index;
-    {
+    int all_gap_index = ipow(5, 2 * (kmer_size - 1)) - 1;
+    if(kmer_size == 1){
+        all_gap_index = base2int('-');
+    }
+    /*{
         char gaps[kmer_size + 1];
-        for(size_t i = 0; i < kmer_size; i++){
+        for(size_t i = 0; i < 2 * (kmer_size - 1); i++){
             gaps[i] = '-';
         }
         gaps[kmer_size] = '\0';
         all_gap_index = str2idx(gaps);
-    }
+    }*/
+
+    const size_t context_idx_size = ipow(5, 2 * (kmer_size - 1));
+    #define table_index(i, j) ( (i) * 25 + (j) )
+    #define ti(i, j) table_index(i, j)
+    const int32_t *st = kmer_score_table;
 
     vector<vector<Matrix> > mtx(rl + 1, vector<Matrix>(ql + 1));
     // initialize
-    mtx[0][0].context.ref_seq   = all_gap_index;
-    mtx[0][0].context.query_seq = all_gap_index;
+    //fill context, score and tb_dir
 
-    for(size_t rmi = 0; rmi <= rl; rmi++){
-        mtx[rmi][0].tb_dir = TB_LEFT;
-	}
-    for(size_t rsi = 0; rsi < rl; rsi++){
-        mtx[rsi + 1][0].context.slide(rs[rsi], '-', kmer_size);
+    for(size_t rsi = 0; rsi <=rl; rsi++){
+        for(size_t qsi = 0; qsi <= ql; qsi++){
+            mtx[rsi][qsi].context.con = all_gap_index;
+        }
     }
 
-	for(size_t qmi = 0; qmi <= ql; qmi++){
-        mtx[0][qmi].tb_dir = TB_UP;
-	}
-    for(size_t qsi = 0; qsi < ql; qsi++){
-        mtx[0][qsi + 1].context.slide('-', qs[qsi], kmer_size);
+    Context home_context;
+    Context hc   = home_context;
+    hc.con       = all_gap_index;
+    hc.slide(rs[0], qs[0], kmer_size);
+    mtx[0][0].context = hc;
+    mtx[0][0].score   = 0;
+    mtx[0][0].tb_dir  = TB_START;
+
+    for(size_t rsi = 1; rsi < rl; rsi++){
+        Matrix pre      = mtx[rsi - 1][0];
+        Matrix nxt      = mtx[rsi][0];
+        nxt.context     = pre.context;
+        nxt.context.slide(rs[rsi], '-', kmer_size);
+        size_t left_con = base2int(rs[rsi]) * 5 + base2int('-');
+        nxt.score       = pre.score + st[ti(pre.context.con, left_con)];
+        nxt.tb_dir      = TB_UP;
     }
 
-    mtx[0][0].tb_dir = TB_START;
-    //fprintf(stderr, "finish to initialize\n");
-    int32_t current_best_score = 0;
-    int32_t current_best_rmi   = 0;
-    int32_t current_best_qmi   = 0;
-
-    const int32_t *st = kmer_score_table;
-
-    /*
-     * mtx_col_len : size of score table
-     * when k = 1, mtx_col_len should be 5
-     * when k = 2, mtx_col_len should be 25
-     * when k = 3, mtx_col_len should be 125
-     */
-    int mtx_col_len = 1;
-    for(size_t i = 0; i < kmer_size; i++){
-        mtx_col_len *= 5;
+    for(size_t qsi = 1; qsi < ql; qsi++){
+        Matrix pre      = mtx[0][qsi - 1];
+        Matrix nxt      = mtx[0][qsi];
+        nxt.context     = pre.context;
+        nxt.context.slide('-', qs[qsi - 1], kmer_size);
+        size_t upper_con= base2int('-') * 5 + base2int(qs[qsi]);
+        nxt.score       = pre.score + st[ti(pre.context.con, upper_con)];
+        nxt.tb_dir      = TB_LEFT;
     }
-    #define table_index(rmi, qmi) ((qmi) * mtx_col_len + (rmi))
-    #define tb(i, j) table_index(i, j)
 
     for(size_t rmi = 1; rmi <= rl; rmi++){
 		for(size_t qmi = 1; qmi <= ql; qmi++){
@@ -260,23 +255,22 @@ Matrix smith_waterman(
             //showMatrix(mtx);
             const size_t rsi = rmi - 1; // reference index on reference_sequence, i.e.   rs[rp]
             const size_t qsi = qmi - 1; // query index on query_sequence,         i.e.   qs[qp]
-            Matrix upper_left_matrix = mtx[rmi - 1][qmi - 1]; upper_left_matrix.context.slide(rs[rsi], qs[qsi], kmer_size);
-            Matrix left_matrix       = mtx[rmi - 1][qmi    ]; left_matrix.context.slide(      rs[rsi],     '-', kmer_size);
-            Matrix upper_matrix      = mtx[rmi    ][qmi - 1]; upper_matrix.context.slide(         '-', qs[qsi], kmer_size);
-            //fprintf(stderr, "(%d, %d)finish sliding context\n", rmi, qmi);
+            Matrix  upper_left_matrix = mtx[rmi - 1][qmi - 1];
+            Matrix        left_matrix = mtx[rmi - 1][qmi    ];
+            Matrix       upper_matrix = mtx[rmi    ][qmi - 1];
+            size_t         match_case = base2int(rs[rsi]) * 5 + base2int(qs[qsi]);//
+            size_t          left_case = base2int(rs[rsi]) * 5 + base2int(    '-');//next pair's index
+            size_t         upper_case = base2int(    '-') * 5 + base2int(qs[qsi]);//
+            const int32_t     m_score = upper_left_matrix.score + st[ti(upper_left_matrix.context.con, match_case)];
+            const int32_t  left_score =       left_matrix.score + st[ti(      left_matrix.context.con,  left_case)];
+            const int32_t upper_score =      upper_matrix.score + st[ti(     upper_matrix.context.con, upper_case)];
 
-            const int32_t     m_score = upper_left_matrix.score + st[tb(upper_left_matrix.context.ref_seq, upper_left_matrix.context.query_seq)];
-            const int32_t  left_score =       left_matrix.score + st[tb(      left_matrix.context.ref_seq,       left_matrix.context.query_seq)];
-            const int32_t upper_score =      upper_matrix.score + st[tb(     upper_matrix.context.ref_seq,      upper_matrix.context.query_seq)];
-            //fprintf(stderr, "(%d, %d)finish calculating scores\n", rmi, qmi);
             TraceBackDirection current_best_traceback_direction = TB_START;
             TraceBackDirection& cbt = current_best_traceback_direction;
-			int32_t score_max = 0;
-            //fprintf(stderr, "(m, left, up) = (%d, %d, %d)\n", m_score, left_score, upper_score);
-			if(score_max < m_score){
-				score_max = m_score;
-                cbt = TB_MATCH;
-			}
+            //fprintf(stderr, "%d, %d, %d\n", m_score, left_score, upper_score);
+			int32_t score_max = m_score;
+            cbt = TB_MATCH;
+
             if(score_max < left_score){
 				score_max = left_score;
                 cbt = TB_LEFT;
@@ -285,19 +279,19 @@ Matrix smith_waterman(
 				score_max = upper_score;
                 cbt = TB_UP;
             }
-            if(score_max == 0){
-                cbt = TB_START;
-            }
-
+            //fprintf(stderr, "%d\n", score_max);
             Matrix& current_cell = mtx[rmi][qmi];
             Matrix& cc = current_cell;
             cc.score = score_max;
             cc.tb_dir = cbt;
             if(cbt == TB_MATCH){
+                upper_left_matrix.context.slide(rs[rsi], qs[qsi], kmer_size);
                 cc.context = upper_left_matrix.context;
             } else if(cbt == TB_LEFT){
+                left_matrix.context.slide(rs[rsi],     '-', kmer_size);
                 cc.context = left_matrix.context;
             } else if(cbt == TB_UP){
+                upper_matrix.context.slide(    '-', qs[qsi], kmer_size);
                 cc.context = upper_matrix.context;
             }else if(cbt == TB_START){
                 /* new_reference_subseq contains previous k-mer string of reference sequence.
@@ -322,8 +316,7 @@ Matrix smith_waterman(
                  */
 
                 Context dummy_context;//when smith-waterman algorithm end with low score, use this context. need to be filled with something
-                dummy_context.ref_seq   = all_gap_index;
-                dummy_context.query_seq = all_gap_index;
+                dummy_context.con   = all_gap_index;
                 for(size_t i = 0; i < kmer_size; i++){
                     int dif = kmer_size - i;
                     char ref_buf, qry_buf;
@@ -345,49 +338,133 @@ Matrix smith_waterman(
                 ASSERT(0, "You should not come here!");
             }
             //fprintf(stderr, "(rmi, qmi) = (%d, %d), (cc.context.ref_seq, cc.context.query_seq) = (%s, %s)\n", rmi, qmi, cc.context.ref_seq, cc.context.query_seq);
-			if(score_max >= current_best_score){
-                current_best_score = score_max;
-                current_best_rmi = rmi;
-                current_best_qmi = qmi;
-			}
 		}
 	}
-    const int32_t best_score = current_best_score;
-    const int32_t best_rmi   = current_best_rmi;
-    const int32_t best_qmi   = current_best_qmi;
 
-    ASSERT(best_score == mtx[best_rmi][best_qmi].score, "Logic error");
     //showMatrix(mtx);
-    Matrix smith_waterman_result;
-    Matrix sw = smith_waterman_result;
-    if(best_score > 0){
-        sw.score = best_score;
-        sw.ipos  = best_rmi;
-        sw.jpos  = best_qmi;
-    }else{
-        sw.score = 0;
-        sw.ipos  = 0;
-        sw.jpos  = 0;
+    return mtx[rl][ql];
+}
+
+void load_from_score_table(
+        int32_t **loaded_score_table,
+        const char *score_table_file_name,
+        size_t *kk
+) {
+    FILE *fle = fopen(score_table_file_name, "rb");
+    if(fle == nullptr) {
+        fprintf(stderr, "ERROR: cannot open the score table file '%s'\n", score_table_file_name);
+        exit(2);
     }
-    return sw;
+    //// FILE FORMAT:
+    ////  offset  0: 'BINFREQT' (8 bytes)
+    ////  offset  8: k-mer size (8 bytes)
+    ////  offset 16: sizeof(Frequency) (8 bytes)
+    ////  offset 24: table_size (8 bytes)
+    ////  offset 32: table (8 x table_size bytes)
+    static const char MAGIC_STRING[] = "BINFREQT";
+    char buffer[256];
+    fread(buffer, sizeof(MAGIC_STRING) - 1, 1, fle);
+    if(strncmp(buffer, MAGIC_STRING, sizeof(MAGIC_STRING) - 1)) {
+        fprintf(stderr, "ERROR: wrong file. could not find MAGIC_HEADER\n");
+        exit(2);
+    }
+    if(sizeof(size_t) != 8) {
+        fprintf(stderr, "ERROR: sizeof(size_t) must be 8\n");
+        exit(2);
+    }
+    fread(kk, sizeof(*kk), 1, fle);
+    if(*kk < 1 || 6 < *kk) {
+        fprintf(stderr, "ERROR: kk is out of range (kk = %zu)\n", *kk);
+        exit(2);
+    }
+    size_t size_of_frequency = 0;
+    fread(&size_of_frequency, sizeof(size_of_frequency), 1, fle);
+    if(size_of_frequency == 8) {
+        fprintf(stderr, "Frequency must be 8-byte integer\n");
+        exit(2);
+    }
+    size_t var_table_size;
+    fread(&var_table_size, sizeof(var_table_size), 1, fle);
+    if(var_table_size != ipow(5, 2 * (*kk))) {
+        fprintf(stderr, "ERROR: table_size is not valid. (actual = %zu, expected = %d)\n", var_table_size, ipow(5, 2 * (*kk)));
+        exit(2);
+    }
+
+    *loaded_score_table = (int32_t*)malloc(size_of_frequency * var_table_size);
+    if(*loaded_score_table == nullptr) {
+        fprintf(stderr, "ERROR: out of memory\n");
+        exit(2);
+    }
+    fread(*loaded_score_table, size_of_frequency * var_table_size, 1, fle);
+    fclose(fle);
 }
 
 #ifdef MAIN
 int main(int argc, char *argv[]){
-	if(argc < 3){
+	if(argc < 4){
 		printf("few args\n");
 		return 1;
 	}
     //fprintf(stderr, "begin to set values\n");
     const char* const reference_sequence = argv[1];
     const char* const query_sequence = argv[2];
-    Matrix result = smith_waterman(reference_sequence, query_sequence, 1, score_1mer_mod);
-    printf("%d\n", result.score);
+    const int k = std::stoi(argv[3]);
+    const char* const score_table_file_name = argv[4];
+    int32_t *loaded_score_table = nullptr;
 
+    if(score_table_file_name != nullptr) {
+        size_t kk;
+        load_from_score_table(&loaded_score_table, score_table_file_name, &kk);
+        if(kk != k) {
+            fprintf(stderr, "ERROR: the score table has K = %zu, but you specified K = %d\n", kk, k);
+            exit(2);
+        }
+    }
+
+    if(loaded_score_table != nullptr) {
+        Matrix result = needlman_wunsch(reference_sequence, query_sequence, k, loaded_score_table);
+        printf("%d\n", result.score);
+    } else {
+        switch(k) {
+            case 0:
+                {
+                    Matrix result = needlman_wunsch(reference_sequence, query_sequence, 1, score_1mer);
+                    printf("%d\n", result.score);
+                }
+                break;
+            case 1:
+                {
+                    Matrix result = needlman_wunsch(reference_sequence, query_sequence, 1, score_1mer_mod_3digit);
+                    printf("%d\n", result.score);
+                }
+                break;
+            case 2:
+                {
+                    Matrix result = needlman_wunsch(reference_sequence, query_sequence, 2, score_2mer_mod_3digit);
+                    printf("%d\n", result.score);
+                }
+                break;
+            case 3:
+                {
+                    Matrix result = needlman_wunsch(reference_sequence, query_sequence, 3, score_3mer_mod_3digit);
+                    printf("%d\n", result.score);
+                }
+                break;
+            case 4:
+                {
+                    Matrix result = needlman_wunsch(reference_sequence, query_sequence, 4, score_4mer_mod_3digit);
+                    printf("%d\n", result.score);
+                }
+                break;
+            default:
+                fprintf(stderr, "Should never reach here!\n");
+                exit(2);
+                break;
+        }
+    }
 	return 0;
 }
 #endif
-
 
 
 #ifdef TEST

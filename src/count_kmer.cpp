@@ -255,7 +255,7 @@ struct FrequencyTable {
     score_count = 0;
     for(int i = 0; i < tablesize; i++){
       for(int j = 0; j < tablesize; j++){
-        if(score_count % 10000 == 0) fprintf(stderr, "third  roop : %'d / %'d                                               \r", score_count, tablesize * tablesize) ;
+        if(score_count % 10000 == 0) fprintf(stderr, "second roop : %'d / %'d                                               \r", score_count, tablesize * tablesize) ;
         #pragma omp atomic
         score_count++;
         if(kkp(j, i) > 0.0){

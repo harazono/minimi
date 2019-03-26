@@ -7,3 +7,5 @@ src/normalized_5mer.bin
 src/normalized_6mer.bin
 
 src/score_5mer_mod_3digit.h
+
+src/Ecoli*

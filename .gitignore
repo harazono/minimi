@@ -10,4 +10,5 @@ src/test_data_sample.fa
 src/time*
 src/unused_files/*
 src/Ecoli*
-
+src/*.bin
+src/bin/

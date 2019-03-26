@@ -9,4 +9,5 @@ src/random_kmer.rb
 src/test_data_sample.fa
 src/time*
 src/unused_files/*
+src/Ecoli*
 

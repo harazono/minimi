@@ -31,5 +31,5 @@ clean:
 include $(DEPENDS)
 
 minimi: minimi.o
-	$(CXX) align_NW.cpp -o minimi -DMAIN
+	$(CXX) minimi.cpp -o minimi -DMAIN
 

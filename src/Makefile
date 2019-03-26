@@ -8,7 +8,7 @@ CXX := $(HOME)/local/bin/g++
 
 .PHONY: depend clean test build_test
 
-all: count_kmer nw
+all: count_kmer minimi
 
 
 count_kmer: count_kmer.o
@@ -30,6 +30,6 @@ clean:
 
 include $(DEPENDS)
 
-nw: align_NW.o
-	$(CXX) align_NW.cpp -o NWalignment -DMAIN
+minimi: minimi.o
+	$(CXX) align_NW.cpp -o minimi -DMAIN
 

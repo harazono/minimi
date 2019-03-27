@@ -210,6 +210,7 @@ struct FrequencyTable {
           }else{
             denomi = kmer_ins_table[j];
           }
+          //denomi = kmer_table[i];
           if(denomi != 0){
             kkp(i, j) = static_cast<double>(kk(i, j)) / static_cast<double>(denomi);//divide by reference k-mer frequency.
             MYASSERT_WMD("prob must be in [0, 1]", kkp(i, j) <= 1.0 && kkp(i, j) >= 1.0, DUMP(kkp(i, j)));

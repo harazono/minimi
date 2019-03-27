@@ -402,8 +402,8 @@ void load_from_score_table(
 #ifdef MAIN
 int main(int argc, char *argv[]){
 	if(argc < 4){
-		printf("few args\n");
-		return 1;
+		printf("minimi <reference string> <query string> <kmer_size> <kmer_banary_path>\n");
+        return 1;
 	}
     //fprintf(stderr, "begin to set values\n");
     const char* const reference_sequence = argv[1];

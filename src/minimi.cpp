@@ -242,33 +242,6 @@ Matrix needlman_wunsch(
             mtx[rsi][qsi].context.query_seq = all_gap_index;
         }
     }
-/*
-    if(kmer_size == 1){
-        for(size_t rsi = 1; rsi <= rl; rsi++){
-            mtx[rsi][0].context.slide(rs[rsi - 1], '-', kmer_size);
-            mtx[rsi][0].score  = mtx[rsi - 1][0].score + st[tb(mtx[rsi][0].context.ref_seq, mtx[rsi][0].context.query_seq)];
-            mtx[rsi][0].tb_dir = TB_LEFT;
-        }
-        for(size_t qsi = 1; qsi <= ql; qsi++){
-            mtx[0][qsi].context.slide('-', qs[qsi - 1], kmer_size);
-            mtx[0][qsi].score  = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
-            mtx[0][qsi].tb_dir = TB_UP;
-        }
-    }
-
-    if(kmer_size >= 2){
-        for(size_t rsi = 1; rsi <= rl; rsi++){
-            mtx[rsi][0].context.slide(rs[rsi - 1], '-', kmer_size);
-            mtx[rsi][0].score  = mtx[rsi - 1][0].score + st[tb(mtx[rsi][0].context.ref_seq, mtx[rsi][0].context.query_seq)];
-            mtx[rsi][0].tb_dir = TB_LEFT;
-        }
-        for(size_t qsi = 1; qsi <= ql; qsi++){
-            mtx[0][qsi].context.slide('-', qs[qsi - 1], kmer_size);
-            mtx[0][qsi].score  = mtx[0][qsi - 1].score + st[tb(mtx[0][qsi].context.ref_seq, mtx[0][qsi].context.query_seq)];
-            mtx[0][qsi].tb_dir = TB_UP;
-        }
-    }
-    */
     Context home_context;
     Context hc   = home_context;
     hc.ref_seq   = all_gap_index;

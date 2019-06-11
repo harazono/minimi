@@ -94,12 +94,17 @@ TEST_F(MyLibraryTest, KInt_hasgap_Test) {
 
 
 }
+
+// 2019/06/10
+// need to add a test case in which multi fasta file should be tested.
 TEST_F(MyLibraryTest, LoadMultiFASTA_Test) {
   MultiFASTA mf = loadFromFASTA("10.ref");
   EXPECT_EQ(mf.size(), 1);
   EXPECT_STREQ(mf.begin()->first.c_str(), "testref");
   EXPECT_STREQ(BString2String(mf.begin()->second).c_str(), "CGACTATTCC");
 }
+
+
 
 
 TEST_F(MyLibraryTest, SplitBy1stSpace_Test) {

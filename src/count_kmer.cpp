@@ -134,7 +134,6 @@ struct FrequencyTable {
     fprintf(stdout, "\n");
   }
 
-
   void printscoretable(){
     for(int i = 0; i < 5; i++){
       for(int j = 0; j < tablesize; j++){
@@ -157,7 +156,7 @@ struct FrequencyTable {
       #pragma omp for
       for(int i = 0; i < tablesize; i++){
         for(int j = 0; j < 5; j++){
-          if(score_count % 10000 == 0) fprintf(stderr, "first roop : %'d / %'d\r", score_count, tablesize * tablesize);
+          if(score_count % 10000 == 0) fprintf(stderr, "first loop : %'d / %'d\r", score_count, tablesize * 5);
           #pragma omp atomic
           score_count++;
           if(kmer_table[j] != 0){
@@ -168,11 +167,11 @@ struct FrequencyTable {
           }
         }
       }
-      fprintf(stderr, "first roop : %'d / %'d                         \r", score_count, tablesize * 5);
+      fprintf(stderr, "first loop : %'d / %'d                         \r", score_count, tablesize * 5);
       score_count = 0;
 
     }
-    fprintf(stderr, "first roop done                                \n");
+    fprintf(stderr, "first loop done                                \n");
 
     score_count = 0;
     for(int i = 0; i < tablesize; i++){

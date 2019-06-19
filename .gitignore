@@ -9,3 +9,12 @@ src/score_5mer_mod_3digit.h
 src/Ecoli*
 src/*.bin
 src/bin/
+src/10.fa
+src/10.ref
+src/10.sam
+src/count_kmer
+src/count_kmer.o
+src/kmer_library_test
+src/kmer_library_test.o
+src/minimi
+src/minimi.o

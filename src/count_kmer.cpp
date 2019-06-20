@@ -160,9 +160,14 @@ struct FrequencyTable {
     fprintf(stderr, "================\n");
     fprintf(stderr, "\n");
 
-    fprintf(stderr, "Loading from the FASTA file ...\r");
+    fprintf(stderr, "Loading from the FASTA file ...\n");
     const MultiFASTA multiFASTA = loadFromFASTA(FASTAFileName);
     fprintf(stderr, "Done                           \n");
+    cerr << "reference record are as below\n---------" << endl;
+    for(auto itr = multiFASTA.begin(); itr != multiFASTA.end(); itr++) {
+      fprintf(stderr, "%s\n", itr->first.c_str());
+    }
+    cerr << "---------" << endl;
     FastTSVParse ftp(SAMFileName);
     if(!ftp) {
       fprintf(stderr, "ERROR: Cannot open SAM file '%s'\n", SAMFileName);
@@ -221,7 +226,7 @@ struct FrequencyTable {
       //outputAsBinaryTable(binaryOutputFileName);
     }
     if(outputInCSV) {
-      printet();
+      //printet();
       printecnt();
     }
   }

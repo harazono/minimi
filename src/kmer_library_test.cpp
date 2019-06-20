@@ -99,10 +99,18 @@ TEST_F(MyLibraryTest, KInt_hasgap_Test) {
 // need to add a test case in which multi fasta file should be tested.
 TEST_F(MyLibraryTest, LoadMultiFASTA_Test) {
   MultiFASTA mf = loadFromFASTA("10.ref");
-  EXPECT_EQ(mf.size(), 1);
-  EXPECT_STREQ(mf.begin()->first.c_str(), "testref");
-  EXPECT_STREQ(BString2String(mf.begin()->second).c_str(), "CGACTATTCC");
-}
+  EXPECT_EQ(mf.size(), 4);
+  EXPECT_STREQ(BString2String(mf.at("apple")).c_str(), "CGTCTATTCC");
+  EXPECT_STREQ(BString2String(mf.at("banana")).c_str(), "CGTCTATTCCCGTCTATTCC");
+  EXPECT_STREQ(BString2String(mf.at("citron")).c_str(), "ATTTAGAAGGAGGTAGATAA");
+  EXPECT_STREQ(BString2String(mf.at("dragon")).c_str(), "AAAAAAAAAAAAAA");
+  /*
+  EXPECT_STREQ(mf.begin()->first.c_str(), "apple");
+  EXPECT_STREQ(BString2String(mf.begin()->second).c_str(), "CGTCTATTCC");
+  EXPECT_STREQ(mf.begin()->first.c_str(), "banana");
+  EXPECT_STREQ(BString2String(mf.begin()->second).c_str(), "CGTCTATTCC");
+  */
+  }
 
 
 

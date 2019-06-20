@@ -129,6 +129,18 @@ struct FrequencyTable {
         }
     }
   }
+  void printect(){
+    for(int i = 0; i < 5; i++){
+      for(int j = 0; j < contextsize; j++){
+        fprintf(stdout, "%8d", ect(i, j));
+        if(j != contextsize - 1){
+          fprintf(stdout, ", ");
+        }else{
+          fprintf(stdout, "\n");
+        }
+      }
+    }
+  }
 
   void printecnt(){
     for(int i = 0; i < 5; i++){
@@ -227,7 +239,7 @@ struct FrequencyTable {
     }
     if(outputInCSV) {
       //printet();
-      printecnt();
+      printect();
     }
   }
 };

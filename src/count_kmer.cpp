@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 void error(const char* msg) {
   fprintf(stderr, "ERROR: %s\n", msg);
   exit(2);
@@ -28,7 +27,7 @@ void printUsageAndExit() {
 
 template<uint KMERSIZE>
 struct FrequencyTable {
-  static const size_t contextsize = ipow(5, KMERSIZE * 2) + 1;
+  static const size_t contextsize = ipow(5, KMERSIZE * 2 + 1);
   typedef int Frequency;
   typedef int Score;
   vector<Frequency> err_table;
@@ -91,7 +90,6 @@ struct FrequencyTable {
     }
     for(size_t i = KMERSIZE - 1; i <= aligned_len - KMERSIZE; i++){
       if(ras[i] != qas[i]){
-        err_idx.ShiftIn(ras[i]);
         err_idx.ShiftIn(qas[i]);
         for(size_t localcnt = 0; localcnt < KMERSIZE * 2 + 1; localcnt++){
           con_idx.ShiftIn(ras[i - KMERSIZE + localcnt]);
@@ -218,20 +216,15 @@ struct FrequencyTable {
       }
     }
     cerr << recordCount << " processed\n";
-    cerr << "counting Done." << endl;
     scorerize(100);
-    cerr << "scorerize done." << endl;
     if(!binaryOutputFileName.empty()) {
       //outputAsBinaryTable(binaryOutputFileName);
     }
     if(outputInCSV) {
-      //printet();
-      //printecnt();
-
+      printet();
+      printecnt();
     }
   }
-
-
 };
 
 
@@ -285,12 +278,12 @@ int main(int argc, char *argv[]){
     case  3: { FrequencyTable< 3> ft; FT(); } break;
     case  4: { FrequencyTable< 4> ft; FT(); } break;
     case  5: { FrequencyTable< 5> ft; FT(); } break;
-    /*case  6: { FrequencyTable< 6> ft; FT(); } break;
+    case  6: { FrequencyTable< 6> ft; FT(); } break;
     case  7: { FrequencyTable< 7> ft; FT(); } break;
     case  8: { FrequencyTable< 8> ft; FT(); } break;
     case  9: { FrequencyTable< 9> ft; FT(); } break;
     case 10: { FrequencyTable<10> ft; FT(); } break;
-    */default: MYASSERT_NEVERREACH();
+    default: MYASSERT_NEVERREACH();
   }
   #undef FT
   return 0;

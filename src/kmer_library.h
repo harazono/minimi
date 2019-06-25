@@ -200,6 +200,23 @@ public:
   }
 };
 
+/*
+inline std::string KInt2String(const int input_kint, const int k)
+{
+  std::string retval;
+  BString tmp;
+  size_t cnt = 0;
+  int i = input_kint;
+  for(cnt = k - 1; cnt > 0; cnt--){
+    i /= ipow(5, cnt);
+    tmp.ShiftIn(i);
+  }
+  tmp.ShiftIn(i % 5);
+  retval = BString2String(tmp);
+  return retval;
+}
+*/
+
 struct CIGAROp {
   char op;
   int len;

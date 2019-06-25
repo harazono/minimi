@@ -152,9 +152,19 @@ struct FrequencyTable {
     }
   }
   void printect(){
+    KInt<KMERSIZE * 2 + 1> tmp;
+    for(int j = 0; j < contextsize; j++){
+      tmp = j;
+      fprintf(stdout, "%11s", tmp.str().c_str());
+      if(j != contextsize - 1){
+        fprintf(stdout, ", ");
+      }else{
+        fprintf(stdout, "\n");
+      }
+    }
     for(int i = 0; i < 5; i++){
       for(int j = 0; j < contextsize; j++){
-        fprintf(stdout, "%8d", ect(i, j));
+        fprintf(stdout, "%11d", ect(i, j));
         if(j != contextsize - 1){
           fprintf(stdout, ", ");
         }else{
@@ -165,9 +175,19 @@ struct FrequencyTable {
   }
 
   void printecnt(){
+    KInt<KMERSIZE * 2 + 1> tmp;
+    for(int j = 0; j < contextsize; j++){
+      tmp = j;
+      fprintf(stdout, "%11s", tmp.str().c_str());
+      if(j != contextsize - 1){
+        fprintf(stdout, ", ");
+      }else{
+        fprintf(stdout, "\n");
+      }
+    }
     for(int i = 0; i < 5; i++){
       for(int j = 0; j < contextsize; j++){
-        fprintf(stdout, "%8lf", ecnt(i, j));
+        fprintf(stdout, "%11lf", ecnt(i, j));
         if(j != contextsize - 1){
           fprintf(stdout, ", ");
         }else{

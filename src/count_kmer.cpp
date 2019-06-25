@@ -142,12 +142,22 @@ struct FrequencyTable {
     }
 
   void printet(){
-    for(int i = 0; i < 5; i++){
-      fprintf(stdout, "%8d", err_table[i]);
-      if(i == 4){
-        fprintf(stdout, "\n");
-      }else{
+    KInt<KMERSIZE * 2 + 1> tmp;
+    for(int j = 0; j < contextsize; j++){
+      tmp = j;
+      fprintf(stdout, "%11s", tmp.str().c_str());
+      if(j != contextsize - 1){
         fprintf(stdout, ", ");
+      }else{
+        fprintf(stdout, "\n");
+      }
+    }
+    for(int i = 0; i < contextsize; i++){
+      fprintf(stdout, "%11d", err_table[i]);
+      if(i != contextsize - 1){
+        fprintf(stdout, ", ");
+      }else{
+        fprintf(stdout, "\n");
         }
     }
   }
@@ -281,8 +291,9 @@ struct FrequencyTable {
       //outputAsBinaryTable(binaryOutputFileName);
     }
     if(outputInCSV) {
-      //printet();
-      printecnt();
+      printet();
+      //printect();
+      //printecnt();
     }
   }
 };

@@ -104,6 +104,8 @@ TEST_F(MyLibraryTest, LoadMultiFASTA_Test) {
   EXPECT_STREQ(BString2String(mf.at("banana")).c_str(), "CGTCTATTCCCGTCTATTCC");
   EXPECT_STREQ(BString2String(mf.at("citron")).c_str(), "ATTTAGAAGGAGGTAGATAA");
   EXPECT_STREQ(BString2String(mf.at("dragon")).c_str(), "AAAAAAAAAAAAAA");
+  MultiFASTA mf2 = loadFromFASTA("/home/harazono/r10_chemistry/ZymoBIOMICS.STD.refseq.v2/test.fa");
+  //EXPECT_EQ(mf2.size(), 4);
   /*
   EXPECT_STREQ(mf.begin()->first.c_str(), "apple");
   EXPECT_STREQ(BString2String(mf.begin()->second).c_str(), "CGTCTATTCC");

@@ -239,7 +239,7 @@ struct FrequencyTable {
     }
     if(outputInCSV) {
       //printet();
-      printect();
+      printecnt();
     }
   }
 };

@@ -77,6 +77,17 @@ TEST_F(MyLibraryTest, KInt_unshift_Test) {
   EXPECT_EQ(k4, k7);
 }
 
+TEST_F(MyLibraryTest, KInt_add_Test) {
+  KInt<3> k1("TCG");
+  KInt<3> k2("GCC");
+  KInt<6> k3("TCGGCC");
+  KInt<6> k4 = k1 * ipow(5, 3) + k2;
+  Base tmp = char2Base('-');
+  KInt<7> k5("TCG-GCC");
+  KInt<7> k6 = k1 * ipow(5, 4) + tmp * ipow(5, 3) + k2;
+  EXPECT_EQ(k5, k6);
+}
+
 TEST_F(MyLibraryTest, KInt_hasgap_Test) {
   int gap = 4;
   KInt<3> k4("GGG");

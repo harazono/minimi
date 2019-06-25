@@ -115,14 +115,7 @@ struct FrequencyTable {
             diff++;
           }
         }
-
-        con_idx = pre * ipow(5, KMERSIZE + 1) + char2Base(ras[i]) * ipow(5, KMERSIZE) + nxt;
-
-
-
-
-        //con_idx.ShiftIn(ras[i - KMERSIZE + localcnt + diff]);
-
+        con_idx = pre * ipow(5, KMERSIZE + 1) + ras[i] * ipow(5,KMERSIZE) + nxt;
         err_table[con_idx]++;
         ect(err_idx, con_idx)++;
       }
@@ -140,7 +133,7 @@ struct FrequencyTable {
           if(score_count % 10000 == 0) fprintf(stderr, "first loop : %'d / %'d\r", score_count, contextsize * 24);
           #pragma omp atomic
           score_count++;
-          ecnt(i, j) = static_cast<double>( ect(i, j) ) / err_table[i];
+          ecnt(i, j) = static_cast<double>( ect(i, j) ) / err_table[j];
           MYASSERT_WMD("prob must be in [0, 1]", ecnt(i, j) <= 1.0 && ecnt(i, j) >= 1.0, DUMP(ecnt(i, j)));
           }
         }
@@ -236,7 +229,8 @@ struct FrequencyTable {
 
       if(!multiFASTA.count(record.rname.c_str())) {
         cerr << "SAM record says RNAME = '" << record.rname << "', but the reference genome does not have '" << record.rname << "'" << endl;
-        exit(2);
+        continue;
+        //exit(2);
       }
 
 

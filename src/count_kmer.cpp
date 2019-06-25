@@ -84,6 +84,8 @@ struct FrequencyTable {
     if(aligned_len < KMERSIZE) return;
     KInt<2 * KMERSIZE + 1> con_idx;
     KInt<1>                err_idx;
+    KInt<KMERSIZE>         pre;
+    KInt<KMERSIZE>         nxt;
     for(size_t i = 0; i < KMERSIZE - 1; ++i) {
       con_idx.ShiftIn(ras[i]);
       err_idx.ShiftIn(qas[i]);
@@ -91,10 +93,37 @@ struct FrequencyTable {
     for(size_t i = KMERSIZE - 1; i <= aligned_len - KMERSIZE; i++){
       if(ras[i] != qas[i]){
         err_idx.ShiftIn(qas[i]);
-        for(size_t localcnt = 0; localcnt < KMERSIZE * 2 + 1; localcnt++){
-          con_idx.ShiftIn(ras[i - KMERSIZE + localcnt]);
+        //pre
+        size_t diff = 0;
+        size_t shiftcount = 1;
+        while(shiftcount <= KMERSIZE){
+          if(ras[i - shiftcount - diff] != char2Base('-')){
+            pre.unshift(ras[i - shiftcount - diff]);
+            shiftcount++;
+          }else{
+            diff++;
+          }
         }
-        err_table[err_idx]++;
+        diff = 0;
+        shiftcount = 1;
+        //nxt
+        while(shiftcount <= KMERSIZE){
+          if(ras[i + shiftcount + diff] != char2Base('-')){
+            nxt.ShiftIn(ras[i + shiftcount + diff]);
+            shiftcount++;
+          }else{
+            diff++;
+          }
+        }
+
+        con_idx = pre * ipow(5, KMERSIZE + 1) + char2Base(ras[i]) * ipow(5, KMERSIZE) + nxt;
+
+
+
+
+        //con_idx.ShiftIn(ras[i - KMERSIZE + localcnt + diff]);
+
+        err_table[con_idx]++;
         ect(err_idx, con_idx)++;
       }
     }
@@ -156,7 +185,7 @@ struct FrequencyTable {
   }
 
 
-  FrequencyTable() : err_table(5, 0), err_context_table(5 * contextsize, 0), err_context_normalized_table(5 * contextsize, 0) {}
+  FrequencyTable() : err_table(contextsize, 0), err_context_table(5 * contextsize, 0), err_context_normalized_table(5 * contextsize, 0) {}
   void countKmerFrequencies (
     const char* FASTAFileName,
     const char* SAMFileName,

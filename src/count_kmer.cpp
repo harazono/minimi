@@ -133,7 +133,11 @@ struct FrequencyTable {
           if(score_count % 10000 == 0) fprintf(stderr, "first loop : %'d / %'d\r", score_count, contextsize * 24);
           #pragma omp atomic
           score_count++;
-          ecnt(i, j) = static_cast<double>( ect(i, j) ) / err_table[j];
+          if(err_table[j] != 0){
+            ecnt(i, j) = static_cast<double>( ect(i, j) ) / err_table[j];
+          }else{
+            ecnt(i, j) = 0.0;
+          }
           MYASSERT_WMD("prob must be in [0, 1]", ecnt(i, j) <= 1.0 && ecnt(i, j) >= 1.0, DUMP(ecnt(i, j)));
           }
         }
@@ -291,9 +295,9 @@ struct FrequencyTable {
       //outputAsBinaryTable(binaryOutputFileName);
     }
     if(outputInCSV) {
-      printet();
+      //printet();
       //printect();
-      //printecnt();
+      printecnt();
     }
   }
 };
